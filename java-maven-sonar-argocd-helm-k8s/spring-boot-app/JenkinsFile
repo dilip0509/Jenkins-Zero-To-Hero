@@ -1,11 +1,22 @@
 pipeline {
   agent {
     docker {
-      image 'dilipmkp/java17-maven-docker'
+      image 'abhishekf5/maven-abhishek-docker-agent:v1'
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // mount Docker socket to access the host's Docker daemon
     }
   }
   stages {
+   stage('Override Java Version to Java 17') {
+      steps {
+        sh '''
+          echo "Overriding Java version to Java 17..."
+          apt-get update && apt-get install -y openjdk-17-jdk
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export PATH=$JAVA_HOME/bin:$PATH
+          java -version
+        '''
+      }
+    }
     stage('Checkout') {
       steps {
         sh 'echo passed'
