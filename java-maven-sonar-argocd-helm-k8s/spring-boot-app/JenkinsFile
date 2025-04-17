@@ -5,23 +5,26 @@ pipeline {
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket to access the host's Docker daemon
     }
   }
-  environment {
-    JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
-    PATH = "/usr/lib/jvm/java-17-openjdk-amd64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-  }
   stages {
-    stage('Checkout') {
+    stage('Install Java 17') {
       steps {
-        sh 'echo passed'
-        // Uncomment the following line to enable Git checkout
-        // git branch: 'main', url: 'https://github.com/iam-veeramalla/Jenkins-Zero-To-Hero.git'
+        sh '''
+          echo "Installing Java 17..."
+          apt-get update && apt-get install -y openjdk-17-jdk
+          echo "Setting JAVA_HOME to Java 17..."
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export PATH=$JAVA_HOME/bin:$PATH
+          echo "Verifying Java version..."
+          java -version
+        '''
       }
     }
     stage('Build and Test') {
       steps {
         sh '''
-          echo "Listing files..."
-          ls -ltr
+          echo "Setting JAVA_HOME to Java 17 for Build and Test..."
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+          export PATH=$JAVA_HOME/bin:$PATH
           echo "Building the project..."
           cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
           mvn clean package
@@ -35,6 +38,9 @@ pipeline {
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
           sh '''
+            echo "Setting JAVA_HOME to Java 17 for Static Code Analysis..."
+            export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
             echo "Running static code analysis with SonarQube..."
             cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
             mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}
@@ -50,6 +56,9 @@ pipeline {
       steps {
         script {
           sh '''
+            echo "Setting JAVA_HOME to Java 17 for Docker Build..."
+            export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+            export PATH=$JAVA_HOME/bin:$PATH
             echo "Building Docker image..."
             cd java-maven-sonar-argocd-helm-k8s/spring-boot-app
             docker build -t ${DOCKER_IMAGE} .
